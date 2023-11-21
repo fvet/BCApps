@@ -1,3 +1,5 @@
+using module .\GitHub\GitHubPullRequest.class.psm1
+
 <#
 .Synopsis
     Set the git config for the current actor
@@ -120,14 +122,15 @@ function New-GitHubPullRequest
         [bool] $AutoMerge = $true
     )
 
-    $pullRequest = [GitHubPullRequest]::Get($Repository, $BranchName)
+    # Check if pull request already exists for branch
+    $pullRequest = [GitHubPullRequest]::GetPRFromBranch($Repository, $BranchName)
     if ($pullRequest) {
         Write-Host "Pull request $BranchName already exists. Skipping creation."
         return
     }
 
     $pullRequest = [GitHubPullRequest]::NewPullRequest($Repository, $BranchName, $TargetBranch, $label, $PullRequestDescription, $AutoMerge)
-    Write-Host "Pull request $($pullRequest.Number) created for branch $BranchName"
+    Write-Host "Pull request with title '$($pullRequest.PullRequest.Title)' created."
 }
 
 Export-ModuleMember -Function *-*

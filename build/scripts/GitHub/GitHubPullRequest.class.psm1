@@ -47,7 +47,8 @@ class GitHubPullRequest {
             gh pr merge --auto --squash --delete-branch
         }
 
-        return Get($Repository, $BranchName)
+        $pr = [GitHubPullRequest]::GetPRFromBranch($Repository, $BranchName)
+        return $pr
     }
 
     <#
@@ -62,15 +63,14 @@ class GitHubPullRequest {
     <#
         Gets the pull request from GitHub.
     #>
-    static [GitHubPullRequest] Get([string] $Repository, [string] $BranchName, [string] $State = "open") {
+    static [GitHubPullRequest] GetPRFromBranch([string] $Repository, [string] $BranchName) {
 
-        $pullRequests = gh api "/repos/$Repository/pulls" --method GET -f state=$State -H ([GitHubAPI]::AcceptJsonHeader) -H ([GitHubAPI]::GitHubAPIHeader) | ConvertFrom-Json
+        $pullRequests = gh api "/repos/$Repository/pulls" --method GET -f state='Open' -H ([GitHubAPI]::AcceptJsonHeader) -H ([GitHubAPI]::GitHubAPIHeader) | ConvertFrom-Json
         $pullRequests = $pullRequests | Where-Object {$_.head.ref -eq $BranchName}
 
         $foundPullRequest = $pullRequests | Select-Object -First 1
 
         if (-not $foundPullRequest) {
-            Write-Host "::Warning:: Could not find pull request for branch $BranchName in repository $Repository"
             return $null
         }
 
