@@ -115,29 +115,19 @@ function New-GitHubPullRequest
         [Parameter(Mandatory=$false)]
         [string] $label = "automation",
         [Parameter(Mandatory=$false)]
-        [string] $PullRequestDescription
+        [string] $PullRequestDescription,
+        [Parameter(Mandatory=$false)]
+        [bool] $AutoMerge = $true
     )
 
-    $openPullRequests = gh api "/repos/$Repository/pulls" --method GET -f state=open | ConvertFrom-Json
-    $existingPullRequest = $openPullRequests | Where-Object {$_.head.ref -eq $BranchName} | Select-Object -First 1
-
-    if ($existingPullRequest) {
-        Write-Host "Pull request already exists for branch ($BranchName): $($existingPullRequest.html_url)"
+    $pullRequest = [GitHubPullRequest]::Get($Repository, $BranchName)
+    if ($pullRequest) {
+        Write-Host "Pull request $BranchName already exists. Skipping creation."
         return
     }
 
-    $params = @(
-        "--head $BranchName"
-        "--base $TargetBranch"
-        "--fill"
-    )
-
-    if ($label -in $availableLabels.name) { $params += "--label $label" }
-    if ($PullRequestDescription) { $params += "--body '$PullRequestDescription'" }
-
-    $parameters = ($params -join " ")
-    Invoke-Expression "gh pr create $parameters"
-    gh pr merge --auto --squash --delete-branch
+    $pullRequest = [GitHubPullRequest]::NewPullRequest($Repository, $BranchName, $TargetBranch, $label, $PullRequestDescription, $AutoMerge)
+    Write-Host "Pull request $($pullRequest.Number) created for branch $BranchName"
 }
 
 Export-ModuleMember -Function *-*
